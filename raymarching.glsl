@@ -25,12 +25,20 @@ float sphere(vec3 center, float radius, vec3 p) {
     return length(p - center) - radius;
 }
 
+float box(vec3 size, vec3 p) {
+    return length(max(abs(p) - size, 0.0));
+}
+
+float roundedBox(vec3 size, float roundSize, vec3 p) {
+    return box(size, p) - roundSize;
+}
+
 vec3 repetition(float interval, vec3 p) {
     return mod(p, interval) - 0.5 * interval;
 }
 
 float sdf(vec3 p) {
-    return sphere(vec3(0.0), 1.0, repetition(4.0, p));
+    return roundedBox(vec3(0.5, 0.5, 0.5), 0.1, repetition(4.0, p));
 }
 
 vec3 normalAt(vec3 p) {
@@ -54,22 +62,36 @@ vec3 normalAt(vec3 p) {
 #endif
 }
 
-vec3 renderSurface(vec3 pos, vec3 normal) {
+vec3 brdf(vec3 lightDir, vec3 viewDir, vec3 normal) {
+    vec3 ret = vec3(0.0);
+
+    // Lambert
+    vec3 albedo = vec3(1.0, 1.0, 1.0);
+    ret += albedo / PI;
+
+    // Blinn-Phong
+    float reflectance = 2.0;
+    vec3 h = (lightDir + viewDir) * 0.5;
+    float dotNH = dot(normal, h);
+    float power = 20.0;
+    ret += reflectance * pow(dotNH, power) * (power + 2.0) / (2.0 * PI);
+
+    return ret;
+}
+
+vec3 renderSurface(vec3 pos, vec3 normal, vec3 viewDir) {
     // 平行光源の放射照度 [W/m^2]
     vec3 directionalLightIrradiance = vec3(2.0);
     // 環境光の放射照度 [W/m^2]
     vec3 environmentLightIrradiance = vec3(0.05);
     // pos から見た光源の方向
     vec3 lightDir = normalize(vec3(1.0, 1.0, 0.8));
-    // surface の色
-    vec3 albedo = vec3(1.0, 1.0, 1.0);
 
     vec3 irradiance =
         environmentLightIrradiance +
         directionalLightIrradiance * max(dot(lightDir, normal), 0.0);
 
-    // Lambert
-    return (albedo / PI) * irradiance;
+    return brdf(lightDir, viewDir, normal) * irradiance;
 }
 
 vec3 renderFog(vec3 baseColor, vec3 fogColor, float dist) {
@@ -89,7 +111,7 @@ vec3 castRay(vec3 rayDir, vec3 cameraPos) {
     if (abs(dist) < 0.001) {
         vec3 rayPos = rayDir * rayLen + cameraPos;
         vec3 normal = normalAt(rayPos);
-        vec3 color = renderSurface(rayPos, normal);
+        vec3 color = renderSurface(rayPos, normal, -rayDir);
         return renderFog(color, vec3(0.0), rayLen);
     } else {
         return vec3(0.0);
