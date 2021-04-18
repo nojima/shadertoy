@@ -1,10 +1,12 @@
 const float PI = 3.14159265358979323846;
 
+/*
 vec3 hsv2rgb(vec3 hsv) {
     vec3 a = abs(mod(hsv.x * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0);
     vec3 b = smoothstep(2.0, 1.0, a);
     return hsv.z * (1.0 - hsv.y * b);
 }
+*/
 
 vec3 linear2srgb(vec3 c) {
     return mix(
@@ -21,7 +23,7 @@ float sdfSphere(vec3 center, float radius, vec3 p) {
 */
 
 float sdfBox(vec3 size, vec3 p) {
-    return length(max(abs(p) - size, 0.0));
+    return length(max(abs(p) - 0.5 * size, 0.0));
 }
 
 float sdfRoundedBox(vec3 size, float roundSize, vec3 p) {
@@ -42,7 +44,7 @@ vec3 repetition(float interval, vec3 p) {
 }
 
 float sdf(vec3 p) {
-    return sdfRoundedBox(vec3(0.5), 0.1,
+    return sdfRoundedBox(vec3(1.0), 0.1,
         repetition(4.0, p)
     );
 }
