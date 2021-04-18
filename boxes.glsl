@@ -1,11 +1,5 @@
 const float PI = 3.14159265358979323846;
 
-// [-1, 1] の範囲にある x を [0, 1] にマップする
-#define to01(x) ((x) * 0.5 + 0.5)
-
-// [0, 1] の範囲にある x を [-1, 1] にマップする
-#define to11(x) ((x) * 2.0 - 1.0)
-
 vec3 hsv2rgb(vec3 hsv) {
     vec3 a = abs(mod(hsv.x * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0);
     vec3 b = smoothstep(2.0, 1.0, a);
@@ -152,10 +146,16 @@ vec3 render(vec2 uv) {
     return castRay(rayDir, cameraPos);
 }
 
+vec3 exposureToneMapping(float exposure, vec3 hdrColor) {
+    return vec3(1.0) - exp(-hdrColor * exposure);
+}
+
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     // 画面上の位置をアスペクト比を保ったまま [-1, 1] の範囲にマップする
     vec2 uv = (fragCoord * 2.0 - iResolution.xy) / min(iResolution.x, iResolution.y);
 
     vec3 color = render(uv);
-    fragColor = vec4(linear2srgb(color), 1.0);
+    color = exposureToneMapping(2.0, color);
+    color = linear2srgb(color);
+    fragColor = vec4(color, 1.0);
 }
