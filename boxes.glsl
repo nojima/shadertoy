@@ -20,16 +20,18 @@ vec3 linear2srgb(vec3 c) {
     );
 }
 
-float sphere(vec3 center, float radius, vec3 p) {
+/*
+float sdfSphere(vec3 center, float radius, vec3 p) {
     return length(p - center) - radius;
 }
+*/
 
-float box(vec3 size, vec3 p) {
+float sdfBox(vec3 size, vec3 p) {
     return length(max(abs(p) - size, 0.0));
 }
 
-float roundedBox(vec3 size, float roundSize, vec3 p) {
-    return box(size, p) - roundSize;
+float sdfRoundedBox(vec3 size, float roundSize, vec3 p) {
+    return sdfBox(size, p) - roundSize;
 }
 
 /*
@@ -46,7 +48,7 @@ vec3 repetition(float interval, vec3 p) {
 }
 
 float sdf(vec3 p) {
-    return roundedBox(vec3(0.5), 0.1,
+    return sdfRoundedBox(vec3(0.5), 0.1,
         repetition(4.0, p)
     );
 }
@@ -81,10 +83,11 @@ vec3 brdf(vec3 lightDir, vec3 viewDir, vec3 normal) {
 
     // Blinn-Phong
     float reflectance = 2.0;
-    vec3 h = (lightDir + viewDir) * 0.5;
+    float power = 5.0;
+    float z = (power + 2.0) / (2.0 * PI);
+    vec3 h = normalize(lightDir + viewDir);
     float dotNH = dot(normal, h);
-    float power = 20.0;
-    ret += reflectance * pow(dotNH, power) * (power + 2.0) / (2.0 * PI);
+    ret += z * reflectance * pow(max(dotNH, 0.0), power);
 
     return ret;
 }
@@ -97,9 +100,10 @@ vec3 renderSurface(vec3 pos, vec3 normal, vec3 viewDir) {
     // pos から見た光源の方向
     vec3 lightDir = normalize(vec3(1.0, 1.0, 0.8));
 
+    float dotLN = dot(lightDir, normal);
     vec3 irradiance =
         environmentLightIrradiance +
-        directionalLightIrradiance * max(dot(lightDir, normal), 0.0);
+        directionalLightIrradiance * max(dotLN, 0.0);
 
     return brdf(lightDir, viewDir, normal) * irradiance;
 }
@@ -135,7 +139,7 @@ float toRadian(float degree) {
 vec3 render(vec2 uv) {
     // camera
     vec3 cameraPos = vec3(0.0, 0.0, 5.0);
-    vec3 cameraDir = normalize(vec3(sin(iTime * 0.1), 0.0, -cos(iTime * 0.1)));
+    vec3 cameraDir = normalize(vec3(-sin(iTime * 0.1), 0.0, -cos(iTime * 0.1)));
     vec3 cameraUp  = normalize(vec3(0.0, 1.0,  0.0));
     vec3 cameraRight = cross(cameraDir, cameraUp);
     float fov = toRadian(30.0);
