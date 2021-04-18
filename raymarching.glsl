@@ -47,14 +47,21 @@ vec3 normalAt(vec3 p) {
 }
 
 vec3 shaderSurface(vec3 pos, vec3 normal) {
-    // 光源の照度 [W/m^2]
-    vec3 lightIrradiance = vec3(2.0);
+    // 平行光源の放射照度 [W/m^2]
+    vec3 directionalLightIrradiance = vec3(2.0);
+    // 環境光の放射照度 [W/m^2]
+    vec3 environmentLightIrradiance = vec3(0.05);
     // pos から見た光源の方向
-    vec3 lightDir = normalize(vec3(1.0, 1.0, 0.5));
+    vec3 lightDir = normalize(vec3(1.0, 1.0, 0.8));
     // surface の色
     vec3 albedo = vec3(1.0, 1.0, 1.0);
 
-    return (albedo / PI) * dot(lightDir, normal) * lightIrradiance;
+    vec3 irradiance =
+        environmentLightIrradiance +
+        directionalLightIrradiance * max(dot(lightDir, normal), 0.0);
+
+    // Lambert
+    return (albedo / PI) * irradiance;
 }
 
 vec3 castRay(vec3 rayDir, vec3 cameraPos) {
@@ -75,19 +82,22 @@ vec3 castRay(vec3 rayDir, vec3 cameraPos) {
     }
 }
 
+float toRadian(float degree) {
+    return degree * (PI / 180.0);
+}
+
 vec3 render(vec2 uv) {
     // camera
-    vec3 cameraPos = vec3(0.0, 0.0,  3.0);
-    vec3 cameraDir = vec3(0.0, 0.0, -1.0);
-    vec3 cameraUp  = vec3(0.0, 1.0,  0.0);
-
+    vec3 cameraPos = vec3(0.0, 0.0, 5.0);
+    vec3 cameraDir = normalize(vec3(cos(iTime), 0.0, -1.0));
+    vec3 cameraUp  = normalize(vec3(0.0, 1.0,  0.0));
     vec3 cameraRight = cross(cameraDir, cameraUp);
-    mat3 cameraMat = mat3(cameraRight, cameraUp, cameraDir);
-
-    float targetDepth = 1.0;
+    float fov = toRadian(30.0);
 
     // ray
-    vec3 rayDir = normalize(cameraMat * vec3(uv.xy, targetDepth));
+    vec3 rayDir = normalize(
+        mat3(cameraRight, cameraUp, cameraDir) * vec3(uv.x * sin(fov), uv.y * sin(fov), cos(fov))
+    );
 
     return castRay(rayDir, cameraPos);
 }
