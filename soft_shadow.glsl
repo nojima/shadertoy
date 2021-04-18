@@ -51,12 +51,6 @@ vec3 normalAt(vec3 p) {
     );
 }
 
-int mod2(int x) {
-    int ret = x % 2;
-    if (ret < 0) ret += 2;
-    return ret;
-}
-
 vec3 getAlbedo(vec3 pos, float material) {
     if (material < 1.5) {
         // floor
