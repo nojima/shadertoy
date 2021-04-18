@@ -70,7 +70,7 @@ vec3 brdf(vec3 pos, vec3 lightDir, vec3 viewDir, vec3 normal, float material) {
     ret += albedo / PI;
 
     // Blinn-Phong
-    float reflectance = 2.0;
+    float reflectance = 0.5;
     float power = 30.0;
     float z = (power + 2.0) / (2.0 * PI);
     vec3 h = normalize(lightDir + viewDir);
