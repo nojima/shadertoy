@@ -1,6 +1,5 @@
 const float PI = 3.14159265358979323846;
 
-
 // [-1, 1] の範囲にある x を [0, 1] にマップする
 #define to01(x) ((x) * 0.5 + 0.5)
 
@@ -33,12 +32,23 @@ float roundedBox(vec3 size, float roundSize, vec3 p) {
     return box(size, p) - roundSize;
 }
 
+/*
+vec3 repetition(vec3 interval, vec3 p) {
+    return mod(p, interval) - 0.5 * interval;
+}
+*/
+
 vec3 repetition(float interval, vec3 p) {
+    int i = int(floor(p / interval));
+    float dir = i % 2 == 0 ? -1.0 : 1.0;
+    p.z += 2.0 * dir * iTime;
     return mod(p, interval) - 0.5 * interval;
 }
 
 float sdf(vec3 p) {
-    return roundedBox(vec3(0.5, 0.5, 0.5), 0.1, repetition(4.0, p));
+    return roundedBox(vec3(0.5), 0.1,
+        repetition(4.0, p)
+    );
 }
 
 vec3 normalAt(vec3 p) {
@@ -125,7 +135,7 @@ float toRadian(float degree) {
 vec3 render(vec2 uv) {
     // camera
     vec3 cameraPos = vec3(0.0, 0.0, 5.0);
-    vec3 cameraDir = normalize(vec3(cos(iTime), 0.0, -1.0));
+    vec3 cameraDir = normalize(vec3(sin(iTime * 0.1), 0.0, -cos(iTime * 0.1)));
     vec3 cameraUp  = normalize(vec3(0.0, 1.0,  0.0));
     vec3 cameraRight = cross(cameraDir, cameraUp);
     float fov = toRadian(30.0);
