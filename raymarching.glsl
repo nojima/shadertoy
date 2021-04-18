@@ -21,8 +21,16 @@ vec3 linear2srgb(vec3 c) {
     );
 }
 
-float sdf(vec3 pos) {
-    return length(pos) - 2.0;
+float sphere(vec3 center, float radius, vec3 p) {
+    return length(p - center) - radius;
+}
+
+vec3 repetition(float interval, vec3 p) {
+    return mod(p, interval) - 0.5 * interval;
+}
+
+float sdf(vec3 p) {
+    return sphere(vec3(0.0), 1.0, repetition(4.0, p));
 }
 
 vec3 normalAt(vec3 p) {
@@ -46,7 +54,7 @@ vec3 normalAt(vec3 p) {
 #endif
 }
 
-vec3 shaderSurface(vec3 pos, vec3 normal) {
+vec3 renderSurface(vec3 pos, vec3 normal) {
     // 平行光源の放射照度 [W/m^2]
     vec3 directionalLightIrradiance = vec3(2.0);
     // 環境光の放射照度 [W/m^2]
@@ -64,10 +72,15 @@ vec3 shaderSurface(vec3 pos, vec3 normal) {
     return (albedo / PI) * irradiance;
 }
 
+vec3 renderFog(vec3 baseColor, vec3 fogColor, float dist) {
+    const float k = 0.1;
+    return mix(fogColor, baseColor, exp(-k*dist));
+}
+
 vec3 castRay(vec3 rayDir, vec3 cameraPos) {
     float rayLen = 0.0;
     float dist;
-    for (int i = 0; i < 16; i++) {
+    for (int i = 0; i < 100; i++) {
         vec3 rayPos = rayDir * rayLen + cameraPos;
         dist = sdf(rayPos);
         rayLen += dist;
@@ -76,7 +89,8 @@ vec3 castRay(vec3 rayDir, vec3 cameraPos) {
     if (abs(dist) < 0.001) {
         vec3 rayPos = rayDir * rayLen + cameraPos;
         vec3 normal = normalAt(rayPos);
-        return shaderSurface(rayPos, normal);
+        vec3 color = renderSurface(rayPos, normal);
+        return renderFog(color, vec3(0.0), rayLen);
     } else {
         return vec3(0.0);
     }
