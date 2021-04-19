@@ -23,7 +23,9 @@ float sdfSphere(vec3 center, float radius, vec3 p) {
 */
 
 float sdfBox(vec3 size, vec3 p) {
-    return length(max(abs(p) - 0.5 * size, 0.0));
+    // https://www.iquilezles.org/www/articles/distfunctions/distfunctions.htm
+    vec3 q = abs(p) - 0.5 * size;
+    return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0);
 }
 
 float sdfRoundedBox(vec3 size, float roundSize, vec3 p) {
