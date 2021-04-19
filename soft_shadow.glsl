@@ -21,21 +21,46 @@ float sdfTorus(float majorRadius, float minorRadius, vec3 p) {
     return length(r) - minorRadius;
 }
 
-float sdfPlane(vec3 normal, float offset, vec3 p) {
+float sdfFloor(vec3 normal, float offset, vec3 p) {
     return dot(p, normal) - offset;
 }
 
+vec3 repetitionX(float interval, vec3 p) {
+    p.x = mod(p.x + 0.5 * interval, interval) - 0.5 * interval;
+    return p;
+}
+
+vec3 repetitionZ(float interval, vec3 p) {
+    p.z = mod(p.z + 0.5 * interval, interval) - 0.5 * interval;
+    return p;
+}
+
+float sdfWedgeX(float y, vec3 p) {
+    return abs(p.x) - p.y + y;
+}
+
+float sdfWedgeZ(float y, vec3 p) {
+    return abs(p.z) - p.y + y;
+}
+
+float sdfTiledFloor(vec3 p) {
+    float d1 = sdfFloor(vec3(0.0, 1.0, 0.0), -2.0, p);
+    float d2 = sdfWedgeX(-2.02, repetitionX(1.0, p));
+    float d3 = sdfWedgeZ(-2.02, repetitionZ(1.0, p));
+    return max(max(d1, -d2), -d3);
+}
+
 float sdf(vec3 p, out float outMaterial) {
-    float dist = sdfPlane(vec3(0.0, 1.0, 0.0), -2.0, p);
+    float minDist = sdfTiledFloor(p);
     outMaterial = 1.0;
 
     float dTorus = sdfTorus(1.0, 0.35, rotate(vec3(1.0, 0.6, 0.1), iTime, p));
-    if (dTorus < dist) {
-        dist = dTorus;
+    if (dTorus < minDist) {
+        minDist = dTorus;
         outMaterial = 2.0;
     }
 
-    return dist;
+    return minDist;
 }
 
 vec3 normalAt(vec3 p) {
@@ -84,7 +109,7 @@ float calculateShadow(vec3 origin, vec3 lightDir) {
     const float lightVisibilityOnShadow = 0.1;
     float c = 0.001;
     float r = 1.0;
-    for (int i = 0; i < 64; i++) {
+    for (int i = 0; i < 50; i++) {
         float unused;
         float dist = sdf(origin + lightDir * c, unused);
         if (dist < 0.001) {
@@ -98,7 +123,7 @@ float calculateShadow(vec3 origin, vec3 lightDir) {
 
 vec3 renderSurface(vec3 pos, vec3 normal, vec3 viewDir, float material) {
     // 平行光源の放射照度 [W/m^2]
-    vec3 directionalLightIrradiance = vec3(3.0);
+    vec3 directionalLightIrradiance = vec3(2.0);
     // 環境光の放射照度 [W/m^2]
     vec3 environmentLightIrradiance = vec3(0.05);
     // pos から見た光源の方向
@@ -123,7 +148,7 @@ vec3 castRay(vec3 rayDir, vec3 cameraPos) {
     float rayLen = 0.0;
     float dist;
     float material;
-    for (int i = 0; i < 256; i++) {
+    for (int i = 0; i < 100; i++) {
         vec3 rayPos = rayDir * rayLen + cameraPos;
         dist = sdf(rayPos, material);
         rayLen += dist;
@@ -152,7 +177,7 @@ mat3 cameraLookAt(vec3 cameraPos, vec3 targetPos, vec3 up) {
 
 vec3 render(vec2 uv) {
     // camera
-    vec3 cameraPos = vec3(0.0, 5.0, 5.0 * (cos(iTime) + 2.0));
+    vec3 cameraPos = vec3(0.0, 3.0, 5.0);
     mat3 cameraBasis = cameraLookAt(cameraPos, vec3(0.0), vec3(0.0, 1.0, 0.0));
     float fov = toRadian(30.0);
 
