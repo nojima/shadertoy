@@ -54,8 +54,8 @@ vec3 normalAt(vec3 p) {
 vec3 getAlbedo(vec3 pos, float material) {
     if (material < 1.5) {
         // floor
-        int a = int(floor(pos.x) - floor(pos.z)) & 1;
-        return mix(vec3(0.5), vec3(1.0), float(a));
+        float a = mod(floor(pos.x) - floor(pos.z), 2.0);
+        return mix(vec3(0.5), vec3(1.0), a);
     } else {
         // torus
         return vec3(0.9, 0.6, 0.5);
@@ -81,7 +81,7 @@ vec3 brdf(vec3 pos, vec3 lightDir, vec3 viewDir, vec3 normal, float material) {
 }
 
 float calculateShadow(vec3 origin, vec3 lightDir) {
-    const float lightVisibilityOnShadow = 0.5;
+    const float lightVisibilityOnShadow = 0.1;
     float c = 0.001;
     float r = 1.0;
     for (int i = 0; i < 64; i++) {
@@ -90,10 +90,10 @@ float calculateShadow(vec3 origin, vec3 lightDir) {
         if (dist < 0.001) {
             return lightVisibilityOnShadow;
         }
-        r = min(r, dist * 16.0 / c);
+        r = min(r, dist / c);
         c += dist;
     }
-    return mix(1.0, r, lightVisibilityOnShadow);
+    return mix(1.0, lightVisibilityOnShadow, exp(-90.0*r*r));
 }
 
 vec3 renderSurface(vec3 pos, vec3 normal, vec3 viewDir, float material) {

@@ -37,8 +37,8 @@ vec3 repetition(vec3 interval, vec3 p) {
 */
 
 vec3 repetition(float interval, vec3 p) {
-    int i = int(floor(p / interval));
-    float dir = i % 2 == 0 ? -1.0 : 1.0;
+    float i = floor(p.x / interval);
+    float dir = mod(i, 2.0) * 2.0 - 1.0;
     p.z += 2.0 * dir * iTime;
     return mod(p, interval) - 0.5 * interval;
 }
