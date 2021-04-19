@@ -157,9 +157,7 @@ vec3 render(vec2 uv) {
     float fov = toRadian(30.0);
 
     // ray
-    vec3 rayDir = normalize(
-        cameraBasis * vec3(uv.x * sin(fov), uv.y * sin(fov), cos(fov))
-    );
+    vec3 rayDir = normalize(cameraBasis * vec3(uv.xy * tan(fov), 1.0));
 
     return castRay(rayDir, cameraPos);
 }
