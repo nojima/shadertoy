@@ -143,17 +143,22 @@ float toRadian(float degree) {
     return degree * (PI / 180.0);
 }
 
+mat3 cameraLookAt(vec3 cameraPos, vec3 targetPos, vec3 up) {
+    vec3 cameraDir = normalize(targetPos - cameraPos);
+    vec3 cameraRight = cross(cameraDir, normalize(up));
+    vec3 cameraUp = cross(cameraRight, cameraDir);
+    return mat3(cameraRight, cameraUp, cameraDir);
+}
+
 vec3 render(vec2 uv) {
     // camera
-    vec3 cameraPos = vec3(0.0, 1.0, 5.0);
-    vec3 cameraDir = normalize(vec3(0.0, -0.4, -1.0));
-    vec3 cameraUp  = normalize(vec3(0.0, 1.0,  0.0));
-    vec3 cameraRight = cross(cameraDir, cameraUp);
+    vec3 cameraPos = vec3(0.0, 5.0, 5.0 * (cos(iTime) + 2.0));
+    mat3 cameraBasis = cameraLookAt(cameraPos, vec3(0.0), vec3(0.0, 1.0, 0.0));
     float fov = toRadian(30.0);
 
     // ray
     vec3 rayDir = normalize(
-        mat3(cameraRight, cameraUp, cameraDir) * vec3(uv.x * sin(fov), uv.y * sin(fov), cos(fov))
+        cameraBasis * vec3(uv.x * sin(fov), uv.y * sin(fov), cos(fov))
     );
 
     return castRay(rayDir, cameraPos);
