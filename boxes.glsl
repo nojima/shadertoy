@@ -76,7 +76,7 @@ vec3 brdf(vec3 lightDir, vec3 viewDir, vec3 normal) {
     vec3 ret = vec3(0.0);
 
     // Lambert
-    vec3 albedo = vec3(1.0, 1.0, 1.0);
+    const vec3 albedo = vec3(1.0, 1.0, 1.0);
     ret += albedo / PI;
 
     // Blinn-Phong
@@ -90,20 +90,32 @@ vec3 brdf(vec3 lightDir, vec3 viewDir, vec3 normal) {
     return ret;
 }
 
-vec3 renderSurface(vec3 pos, vec3 normal, vec3 viewDir) {
+// 平行光源の反射光の放射輝度を返す
+vec3 directionalLightReflectedRadiance(vec3 pos, vec3 normal, vec3 viewDir) {
     // 平行光源の放射照度 [W/m^2]
-    vec3 directionalLightIrradiance = vec3(2.0);
-    // 環境光の放射照度 [W/m^2]
-    vec3 environmentLightIrradiance = vec3(0.05);
+    const vec3 directionalLightIrradiance = vec3(2.0);
     // pos から見た光源の方向
-    vec3 lightDir = normalize(vec3(1.0, 1.0, 0.8));
+    const vec3 lightDir = normalize(vec3(1.0, 1.0, 0.8));
 
     float dotLN = dot(lightDir, normal);
-    vec3 irradiance =
-        environmentLightIrradiance +
-        directionalLightIrradiance * max(dotLN, 0.0);
+    vec3 incidentLight = directionalLightIrradiance * max(dotLN, 0.0);
 
-    return brdf(lightDir, viewDir, normal) * irradiance;
+    return brdf(lightDir, viewDir, normal) * incidentLight;
+}
+
+// 環境光の反射光の放射輝度を返す
+vec3 ambientLightReflectedRadiance(vec3 pos, vec3 normal, vec3 viewDir) {
+    // 環境光の放射輝度 [W/sr/m^2]
+    const vec3 ambientLightIrradiance = vec3(0.05);
+    // Lambert 面で近似する
+    const vec3 albedo = vec3(1.0, 1.0, 1.0);
+    return albedo * ambientLightIrradiance;
+}
+
+// サーフィス上の点から視線方向へ反射される光の放射輝度を求める
+vec3 renderSurface(vec3 pos, vec3 normal, vec3 viewDir) {
+    return directionalLightReflectedRadiance(pos, normal, viewDir)
+         + ambientLightReflectedRadiance(pos, normal, viewDir);
 }
 
 vec3 renderFog(vec3 baseColor, vec3 fogColor, float dist) {
@@ -130,17 +142,13 @@ vec3 castRay(vec3 rayDir, vec3 cameraPos) {
     }
 }
 
-float toRadian(float degree) {
-    return degree * (PI / 180.0);
-}
-
 vec3 render(vec2 uv) {
     // camera
     vec3 cameraPos = vec3(0.0, 0.0, 5.0);
     vec3 cameraDir = normalize(vec3(-sin(iTime * 0.1), 0.0, -cos(iTime * 0.1)));
     vec3 cameraUp  = normalize(vec3(0.0, 1.0,  0.0));
     vec3 cameraRight = cross(cameraDir, cameraUp);
-    float fov = toRadian(30.0);
+    float fov = radians(30.0);
 
     // ray
     vec3 rayDir = normalize(

@@ -121,22 +121,32 @@ float calculateShadow(vec3 origin, vec3 lightDir) {
     return mix(1.0, lightVisibilityOnShadow, exp(-90.0*r*r));
 }
 
-vec3 renderSurface(vec3 pos, vec3 normal, vec3 viewDir, float material) {
+// 平行光源の反射光の放射輝度を返す
+vec3 directionalLightReflectedRadiance(vec3 pos, vec3 normal, vec3 viewDir, float material) {
     // 平行光源の放射照度 [W/m^2]
-    vec3 directionalLightIrradiance = vec3(2.0);
-    // 環境光の放射照度 [W/m^2]
-    vec3 environmentLightIrradiance = vec3(0.05);
+    const vec3 directionalLightIrradiance = vec3(2.0);
     // pos から見た光源の方向
-    vec3 lightDir = normalize(vec3(0.7, 1.0, -0.5));
-
-    float lightVisibility = calculateShadow(pos + normal * 0.001, lightDir);
+    const vec3 lightDir = normalize(vec3(0.7, 1.0, -0.5));
 
     float dotLN = dot(lightDir, normal);
-    vec3 irradiance =
-        environmentLightIrradiance +
-        directionalLightIrradiance * lightVisibility * max(dotLN, 0.0);
+    float lightVisibility = calculateShadow(pos + normal * 0.001, lightDir);
+    vec3 incidentLight = directionalLightIrradiance * lightVisibility * max(dotLN, 0.0);
 
-    return brdf(pos, lightDir, viewDir, normal, material) * irradiance;
+    return brdf(pos, lightDir, viewDir, normal, material) * incidentLight;
+}
+
+// 環境光の反射光の放射輝度を返す
+vec3 ambientLightReflectedRadiance(vec3 pos, vec3 normal, vec3 viewDir, float material) {
+    // 環境光の放射輝度 [W/sr/m^2]
+    const vec3 ambientLightIrradiance = vec3(0.05);
+    // Lambert 面で近似する
+    return getAlbedo(pos, material) * ambientLightIrradiance;
+}
+
+// サーフィス上の点から視線方向へ反射される光の放射輝度を求める
+vec3 renderSurface(vec3 pos, vec3 normal, vec3 viewDir, float material) {
+    return directionalLightReflectedRadiance(pos, normal, viewDir, material)
+         + ambientLightReflectedRadiance(pos, normal, viewDir, material);
 }
 
 vec3 renderFog(vec3 baseColor, vec3 fogColor, float dist) {
@@ -164,10 +174,6 @@ vec3 castRay(vec3 rayDir, vec3 cameraPos) {
     }
 }
 
-float toRadian(float degree) {
-    return degree * (PI / 180.0);
-}
-
 mat3 cameraLookAt(vec3 cameraPos, vec3 targetPos, vec3 up) {
     vec3 cameraDir = normalize(targetPos - cameraPos);
     vec3 cameraRight = cross(cameraDir, normalize(up));
@@ -178,11 +184,11 @@ mat3 cameraLookAt(vec3 cameraPos, vec3 targetPos, vec3 up) {
 vec3 render(vec2 uv) {
     // camera
     vec3 cameraPos = vec3(0.0, 3.0, 5.0);
-    mat3 cameraBasis = cameraLookAt(cameraPos, vec3(0.0), vec3(0.0, 1.0, 0.0));
-    float fov = toRadian(30.0);
+    mat3 cameraMatrix = cameraLookAt(cameraPos, vec3(0.0), vec3(0.0, 1.0, 0.0));
+    float fov = radians(30.0);
 
     // ray
-    vec3 rayDir = normalize(cameraBasis * vec3(uv.xy * tan(fov), 1.0));
+    vec3 rayDir = normalize(cameraMatrix * vec3(uv.xy * tan(fov), 1.0));
 
     return castRay(rayDir, cameraPos);
 }
